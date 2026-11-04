@@ -586,7 +586,7 @@ export class AppComponent implements OnInit {
     const apiCode = CITY_API_MAP[cityName];
     if (!apiCode) return;
 
-    const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${apiCode}?Authorization=CWA-82BA9917-4476-4663-9180-4AC0484947A8&format=JSON`;
+    const url = `/api/weather?dataset=${apiCode}`;
 
     this.weatherRequest?.unsubscribe();
     this.rawLocations.set([]);

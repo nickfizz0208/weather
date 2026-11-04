@@ -7,7 +7,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "deploy:cloudflare": "npm run build && npx --yes wrangler@4 pages deploy dist --project-name weather-nickfizz0208 --branch main"
+    "deploy:cloudflare": "npm run build && npx --yes wrangler@4 deploy",
+    "test:worker": "node --test worker/weather.test.mjs"
   },
   "private": true,
   "dependencies": {
