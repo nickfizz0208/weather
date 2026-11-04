@@ -1,5 +1,7 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Subscription, timeout } from 'rxjs';
 import { HttpClientService } from './@services/http-client.service';
 
 export interface FavoriteItem {
@@ -109,12 +111,16 @@ export const CLIMATE_OPTIONS: ClimateElementOption[] = [
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, FormsModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
 export class AppComponent implements OnInit {
-  title = 'demo5';
+  title = 'weather';
+  isLoading = signal(false);
+  loadError = signal('');
+  updatedAt = signal('');
+  private weatherRequest?: Subscription;
 
   httpsClientService = inject(HttpClientService);
 
@@ -137,7 +143,10 @@ export class AppComponent implements OnInit {
   private loadFavorites(): FavoriteItem[] {
     try {
       const saved = localStorage.getItem('weather_fav_list');
-      return saved ? JSON.parse(saved) : [];
+      const items: unknown = saved ? JSON.parse(saved) : [];
+      return Array.isArray(items) ? items.filter((f: any) =>
+        f && typeof f.city === 'string' && CITY_API_MAP[f.city] &&
+        typeof f.district === 'string' && f.district.length > 0) : [];
     } catch {
       return [];
     }
@@ -163,7 +172,9 @@ export class AppComponent implements OnInit {
     }
 
     this.favorites.set(updated);
-    localStorage.setItem('weather_fav_list', JSON.stringify(updated));
+    try {
+      localStorage.setItem('weather_fav_list', JSON.stringify(updated));
+    } catch { /* Favorites remain usable in memory when storage is unavailable. */ }
   }
 
   selectFavorite(fav: FavoriteItem): void {
@@ -191,7 +202,7 @@ export class AppComponent implements OnInit {
 
         const reverseUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
 
-        this.httpsClientService.getApi(reverseUrl).subscribe({
+        this.httpsClientService.getApi(reverseUrl).pipe(timeout(15000)).subscribe({
           next: (res: any) => {
             this.isLocating.set(false);
             const address = res?.address || {};
@@ -204,25 +215,7 @@ export class AppComponent implements OnInit {
             if (matchedCity) {
               this.selectedCity.set(matchedCity);
 
-              const apiCode = CITY_API_MAP[matchedCity];
-              const cwaUrl = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${apiCode}?Authorization=CWA-82BA9917-4476-4663-9180-4AC0484947A8&format=JSON`;
-
-              this.httpsClientService.getApi(cwaUrl).subscribe((cwaRes: any) => {
-                const raw = cwaRes?.records?.Locations?.[0]?.Location || cwaRes?.records?.locations?.[0]?.location || [];
-                this.rawLocations.set(raw);
-
-                const matchedDist = raw.find((d: any) => {
-                  const dName = d.LocationName || d.locationName || '';
-                  const cleanDist = rawDistrict.replace('區', '').replace('鄉', '').replace('鎮', '').replace('市', '');
-                  return dName.includes(cleanDist) || cleanDist.includes(dName.replace('區', '').replace('鄉', '').replace('鎮', '').replace('市', ''));
-                });
-
-                if (matchedDist) {
-                  this.selectedDistrictName.set(matchedDist.LocationName || matchedDist.locationName);
-                } else {
-                  this.selectedDistrictName.set('ALL');
-                }
-              });
+              this.fetchWeatherData(matchedCity, rawDistrict || 'ALL');
             } else {
               alert('定位成功，但未能匹配到台灣對應的縣市資料。');
             }
@@ -281,15 +274,15 @@ export class AppComponent implements OnInit {
       const ciVal = this.extractElementValue(elements, 'CI');
 
       const popNum = Number(popVal) || 0;
-      const tempNum = Number(tempVal) || 25;
-      const ciNum = Number(ciVal) || 25;
+      const tempNum = tempVal === '' ? NaN : Number(tempVal);
+      const ciNum = ciVal === '' ? NaN : Number(ciVal);
 
-      const rainAdvice = popNum >= 30 ? '🌂 降雨機率高，建議隨身攜帶雨具' : '☀️ 降雨機率低，非常適合戶外活動';
+      const rainAdvice = !popVal ? '降雨機率暫無資料' : popNum >= 30 ? '🌂 降雨機率高，建議隨身攜帶雨具' : '☀️ 降雨機率低，可安排戶外活動';
 
-      let outfitAdvice = '👕 穿搭：舒適短袖';
+      let outfitAdvice = Number.isFinite(tempNum) ? '👕 穿搭：舒適短袖' : '氣溫暫無資料';
       if (tempNum >= 30) outfitAdvice = '👕 穿搭：清涼透氣短袖，記得注意防曬補充水分';
-      else if (tempNum <= 20) outfitAdvice = '🧥 穿搭：氣溫偏涼，建議搭配薄外套';
       else if (tempNum <= 15) outfitAdvice = '🧥 穿搭：天氣寒冷，請準備保暖厚外套';
+      else if (tempNum <= 20) outfitAdvice = '🧥 穿搭：氣溫偏涼，建議搭配薄外套';
 
       const themeClass = this.getWeatherThemeClass(weatherVal);
 
@@ -314,7 +307,7 @@ export class AppComponent implements OnInit {
         }
       });
 
-      const targetIndices = futureIndices.length > 0 ? futureIndices.slice(0, 6) : [0, 1, 2, 3, 4, 5];
+      const targetIndices = futureIndices.slice(0, 6);
 
       const nextSlots: HourlySlot[] = targetIndices.map((idx: number) => {
         const tItem = times[idx] || {};
@@ -329,7 +322,7 @@ export class AppComponent implements OnInit {
             : (first.value || first.Value || first.Temperature || (Object.values(first)[0] as string) || '--');
         }
 
-        const wxItem = wxTimes[idx];
+        const wxItem = this.slotAt(wxTimes, startTime, false);
         const wxVals = wxItem?.ElementValue || wxItem?.elementValue || [];
         let wxVal = '';
         if (wxVals.length > 0) {
@@ -339,31 +332,23 @@ export class AppComponent implements OnInit {
             : (first.value || first.Value || first.Weather || (Object.values(first)[0] as string) || '');
         }
 
-        const popItem = popTimes[idx] || popTimes[0];
+        const popItem = this.slotAt(popTimes, startTime, false);
         const popVals = popItem?.ElementValue || popItem?.elementValue || [];
-        let pVal = '0%';
+        let pVal = '--';
         if (popVals.length > 0) {
           const first = popVals[0];
           const pStr = typeof first === 'string' ? first : (first.value || first.Value || (Object.values(first)[0] as string) || '0');
-          pVal = pStr.includes('%') ? pStr : `${pStr}%`;
+          pVal = Number.isFinite(parseFloat(pStr)) && parseFloat(pStr) >= 0 ? `${parseFloat(pStr)}%` : '--';
         }
 
         const d = new Date(startTime);
         const timeStr = isNaN(d.getTime()) ? `時段${idx+1}` : `${d.getHours().toString().padStart(2, '0')}:00`;
 
-        const parsedTemp = parseFloat(tVal) || 25;
+        const parsedTemp = Number.isFinite(parseFloat(tVal)) ? parseFloat(tVal) : NaN;
         const parsedPop = parseFloat(pVal) || 0;
 
-        let rainNum = 0;
-        if (parsedPop >= 20) {
-          let multiplier = 0.06;
-          if (wxVal.includes('大雨') || wxVal.includes('豪雨') || wxVal.includes('雷')) {
-            multiplier = 0.22;
-          } else if (wxVal.includes('雨')) {
-            multiplier = 0.12;
-          }
-          rainNum = Math.round(parsedPop * multiplier * 10) / 10;
-        }
+        // Plot the supplied probability; probability cannot determine rain volume.
+        const rainNum = parsedPop;
 
         return {
           time: timeStr,
@@ -373,10 +358,10 @@ export class AppComponent implements OnInit {
           weather: wxVal,
           pop: pVal,
           popNum: parsedPop,
-          rainAmount: `${rainNum} mm`,
+          rainAmount: pVal,
           rainNum
         };
-      });
+      }).filter(slot => Number.isFinite(slot.tempNum));
 
       const tempNums = nextSlots.map(s => s.tempNum);
       let minTemp = Math.min(...tempNums);
@@ -387,15 +372,14 @@ export class AppComponent implements OnInit {
       }
 
       const rainNums = nextSlots.map(s => s.rainNum);
-      let maxRain = Math.max(...rainNums);
-      if (maxRain < 5) maxRain = 5;
+      const maxRain = 100;
 
       const count = nextSlots.length;
       const chartPoints: ChartPoint[] = nextSlots.map((slot, i) => {
         const x = count > 1 ? 45 + (i * (410 / (count - 1))) : 250;
         const yTemp = 105 - ((slot.tempNum - minTemp) / (maxTemp - minTemp)) * 55;
 
-        const barHeight = Math.max(3, (slot.rainNum / maxRain) * 45);
+        const barHeight = Math.max(0, (slot.rainNum / maxRain) * 45);
         const barY = 150 - barHeight;
         const barX = x - 12;
 
@@ -422,10 +406,10 @@ export class AppComponent implements OnInit {
         weather: weatherVal || '無資料',
         icon: this.getWeatherIcon(weatherVal),
         temp: tempVal || '--',
-        pop: popVal ? `${popVal}%` : '0%',
+        pop: popVal ? `${popVal}%` : '--',
         humidity: rhVal ? `${rhVal}%` : '--',
         wind: fullWindStr,
-        comfortText: ciNum ? this.getComfortText(ciNum) : '舒適',
+        comfortText: Number.isFinite(ciNum) ? this.getComfortText(ciNum) : '--',
         rainAdvice,
         outfitAdvice,
         themeClass,
@@ -478,7 +462,7 @@ export class AppComponent implements OnInit {
             wsStr = typeof first === 'string' ? first : (first.value || first.Value || Object.values(first)[0] || '');
           }
 
-          const wdItem = wdTimes[idx] || wdTimes.find((w: any) => (w.StartTime || w.startTime) === startTime);
+          const wdItem = this.slotAt(wdTimes, startTime);
           const wdVals = wdItem?.ElementValue || wdItem?.elementValue || [];
           let wdStr = '';
           if (wdVals.length > 0) {
@@ -604,13 +588,42 @@ export class AppComponent implements OnInit {
 
     const url = `https://opendata.cwa.gov.tw/api/v1/rest/datastore/${apiCode}?Authorization=CWA-82BA9917-4476-4663-9180-4AC0484947A8&format=JSON`;
 
-    this.httpsClientService.getApi(url).subscribe((res: any) => {
-      console.log(`${cityName} 氣象 API GET 結果：`, res);
-      const raw = res?.records?.Locations?.[0]?.Location || res?.records?.locations?.[0]?.location || [];
-
-      this.rawLocations.set(raw);
-      this.selectedDistrictName.set(targetDistrict);
+    this.weatherRequest?.unsubscribe();
+    this.rawLocations.set([]);
+    this.selectedDistrictName.set('ALL');
+    this.isLoading.set(true);
+    this.loadError.set('');
+    this.updatedAt.set('');
+    this.weatherRequest = this.httpsClientService.getApi(url).pipe(timeout(15000)).subscribe({
+      next: (res: any) => {
+        const raw = res?.records?.Locations?.[0]?.Location ?? res?.records?.locations?.[0]?.location;
+        this.isLoading.set(false);
+        if (!Array.isArray(raw) || raw.length === 0) {
+          this.loadError.set('目前沒有可用的預報資料，請稍後重試。');
+          return;
+        }
+        this.rawLocations.set(raw);
+        const normalize = (value: string) => value.replace(/台/g, '臺');
+        const district = raw.find((d: any) => normalize(d.LocationName || d.locationName || '') === normalize(targetDistrict));
+        this.selectedDistrictName.set(district ? (district.LocationName || district.locationName) : 'ALL');
+        this.updatedAt.set(new Date().toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit' }));
+      },
+      error: () => {
+        this.isLoading.set(false);
+        this.loadError.set('天氣資料讀取失敗，請確認網路連線後重試。');
+      }
     });
+  }
+
+  private slotAt(times: any[], timestamp: string, allowFuture = true): any {
+    const target = new Date(timestamp).getTime();
+    if (!Number.isFinite(target)) return undefined;
+    const start = (t: any) => new Date(t.StartTime || t.startTime || t.DataTime || t.dataTime || '').getTime();
+    const active = times.find(t => start(t) <= target && target < new Date(t.EndTime || t.endTime || '').getTime());
+    if (active) return active;
+    const previous = times.filter(t => !(t.EndTime || t.endTime) && start(t) <= target).at(-1);
+    if (previous && target - start(previous) < 3 * 3600000) return previous;
+    return allowFuture ? times.find(t => start(t) >= target) : undefined;
   }
 
   onCitySelect(event: Event): void {
@@ -663,13 +676,13 @@ export class AppComponent implements OnInit {
         case 'RH':
           return elLower === 'rh' || elName.includes('濕度');
         case 'WS':
-          return elLower === 'ws' || elLower === 'wd' || elName.includes('風速');
+          return elLower === 'ws' || elName.includes('風速');
         case 'WD':
           return elLower === 'wd' || elName.includes('風向');
         case 'Td':
           return elLower === 'td' || elName.includes('露點');
         case 'Wx':
-          return elLower === 'wx' || elName.includes('天氣');
+          return elLower === 'wx' || elName === '天氣現象';
         case 'DESC':
           return elLower.includes('description') || elName.includes('描述');
         default:
@@ -685,13 +698,15 @@ export class AppComponent implements OnInit {
     const times = matched.Time || matched.time || [];
     if (!times || times.length === 0) return '';
 
-    const firstTime = times[0];
+    const firstTime = this.slotAt(times, new Date().toISOString());
+    if (!firstTime) return '';
     const elementValue = firstTime.ElementValue || firstTime.elementValue || [];
     if (!elementValue || elementValue.length === 0) return '';
 
     const firstVal = elementValue[0];
     if (typeof firstVal === 'string') return firstVal;
-    return firstVal.value || firstVal.Value || (Object.values(firstVal)[0] as string) || '';
+    const value = String(firstVal.value ?? firstVal.Value ?? Object.values(firstVal)[0] ?? '');
+    return value === '-99' || value === '-' ? '' : value;
   }
 
   private getWeatherIcon(weatherInput: any): string {
@@ -727,7 +742,8 @@ export class AppComponent implements OnInit {
     const e = new Date(end);
     const eHour = e.getHours().toString().padStart(2, '0');
 
-    return `${month}/${date} ${sHour}:${eHour === '00' ? '00' : eHour + ':00'}`;
+    const endDate = `${(e.getMonth() + 1).toString().padStart(2, '0')}/${e.getDate().toString().padStart(2, '0')}`;
+    return `${month}/${date} ${sHour}:00 ～ ${endDate} ${eHour}:00`;
   }
 
   private getComfortText(ci: number): string {

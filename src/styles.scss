@@ -1,1 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
+
+* { box-sizing: border-box; }
+body { margin: 0; background: #f5f8fc; }
+button, select { font: inherit; }
+button:focus-visible, select:focus-visible { outline: 3px solid #2563eb; outline-offset: 4px; }

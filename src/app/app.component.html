@@ -11,7 +11,7 @@
         @for (fav of favorites(); track fav.city + fav.district) {
           <button class="fav-pill" (click)="selectFavorite(fav)">
             {{ fav.city }} {{ fav.district }}
-            <span class="remove-icon" (click)="toggleFavorite(fav.city, fav.district, $event)" title="移除最愛">✕</span>
+            </button><button class="remove-icon" (click)="toggleFavorite(fav.city, fav.district, $event)" [attr.aria-label]="'移除最愛：' + fav.city + fav.district">✕
           </button>
         }
       </div>
@@ -27,19 +27,19 @@
 
       <div class="select-group">
         <label for="citySelect">🏙️ 縣市：</label>
-        <select id="citySelect" (change)="onCitySelect($event)">
+        <select [ngModel]="selectedCity()" id="citySelect" (ngModelChange)="selectedCity.set($event); fetchWeatherData($event)">
           @for (city of cityList; track city) {
-            <option [value]="city" [selected]="city === selectedCity()">{{ city }}</option>
+            <option [value]="city">{{ city }}</option>
           }
         </select>
       </div>
 
       <div class="select-group">
         <label for="districtSelect">📍 行政區：</label>
-        <select id="districtSelect" (change)="onDistrictSelect($event)">
+        <select [ngModel]="selectedDistrictName()" [disabled]="isLoading() || rawLocations().length === 0" id="districtSelect" (ngModelChange)="selectDistrict($event)">
           <option value="ALL">✨ 全部行政區 ({{ rawLocations().length }})</option>
           @for (district of rawLocations(); track $index) {
-            <option [value]="district.LocationName || district.locationName" [selected]="(district.LocationName || district.locationName) === selectedDistrictName()">
+            <option [value]="district.LocationName || district.locationName">
               {{ district.LocationName || district.locationName }}
             </option>
           }
@@ -50,7 +50,7 @@
     <div class="element-pill-bar">
       @for (opt of climateOptions; track opt.id) {
         <button
-          class="pill-btn"
+          class="pill-btn" [attr.aria-pressed]="selectedElement() === opt.id"
           [class.active]="selectedElement() === opt.id"
           (click)="onElementSelect(opt.id)">
           {{ opt.name }}
@@ -58,6 +58,16 @@
       }
     </div>
   </div>
+
+  <div class="data-status" aria-live="polite">
+    @if (isLoading()) { <p role="status">🌤️ 天氣資料載入中，請稍候...</p> }
+    @else if (loadError()) {
+      <p role="alert">{{ loadError() }}</p>
+      <button class="retry-btn" (click)="fetchWeatherData(selectedCity())">重新載入</button>
+    }
+    @else if (updatedAt()) { <p>資料來源：中央氣象署 · 讀取時間 {{ updatedAt() }}（臺灣時間）</p> }
+  </div>
+  @if (!isLoading() && !loadError() && rawLocations().length === 0) { <p class="no-data">目前沒有可顯示的預報資料</p> }
 
   @if (selectedElement() === 'ALL') {
     @if (summaryList().length === 1) {
@@ -68,7 +78,8 @@
 
     <div class="weather-grid" [class.single-card-mode]="summaryList().length === 1">
       @for (district of summaryList(); track district.name) {
-        <div class="weather-card {{ summaryList().length === 1 ? district.themeClass : '' }}" (click)="selectDistrict(district.name)">
+        <article class="weather-card {{ summaryList().length === 1 ? district.themeClass : '' }}">
+          <button class="card-open" (click)="selectDistrict(district.name)" [attr.aria-label]="'查看' + district.name + '詳細預報'"></button>
 
           @if (summaryList().length === 1) {
             <div class="animated-bg-layer">
@@ -112,7 +123,7 @@
                   class="fav-btn"
                   [class.active]="isFavorite(selectedCity(), district.name)"
                   (click)="toggleFavorite(selectedCity(), district.name, $event)"
-                  title="加入/取消我的最愛">
+                  [attr.aria-label]="'加入或取消最愛：' + district.name" [attr.aria-pressed]="isFavorite(selectedCity(), district.name)" title="加入/取消我的最愛">
                   {{ isFavorite(selectedCity(), district.name) ? '💖' : '🤍' }}
                 </button>
                 <span class="location-badge">{{ selectedCity() }}</span>
@@ -156,15 +167,15 @@
               @if (district.nextSlots.length > 0) {
                 <div class="hero-trend-chart-section">
                   <div class="chart-header-row">
-                    <span class="chart-title">📊 逐時氣溫與降雨量雙趨勢</span>
+                    <span class="chart-title">📊 近期氣溫與降雨機率</span>
                     <div class="chart-legend-box">
                       <div class="legend-item"><span class="dot temp"></span>氣溫 (°C)</div>
-                      <div class="legend-item"><span class="dot pop"></span>降雨量 (mm)</div>
+                      <div class="legend-item"><span class="dot pop"></span>降雨機率 (%)</div>
                     </div>
                   </div>
 
                   <div class="svg-wrapper">
-                    <svg viewBox="0 0 500 200" class="trend-svg">
+                    <svg viewBox="0 0 500 200" class="trend-svg" role="img" aria-label="近期氣溫與降雨機率預報">
                       <line x1="30" y1="40" x2="470" y2="40" stroke="rgba(203, 213, 225, 0.5)" stroke-dasharray="4" />
                       <line x1="30" y1="95" x2="470" y2="95" stroke="rgba(203, 213, 225, 0.5)" stroke-dasharray="4" />
                       <line x1="30" y1="150" x2="470" y2="150" stroke="#cbd5e1" stroke-width="1.5" />
@@ -233,11 +244,7 @@
               }
             }
           </div>
-        </div>
-      } @empty {
-        <div class="loading-box">
-          <p>🌤️ 天氣資料載入中，請稍候...</p>
-        </div>
+        </article>
       }
     </div>
   }
