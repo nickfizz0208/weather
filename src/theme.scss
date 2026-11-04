@@ -1,0 +1,54 @@
+/* Follow the operating system appearance, including changes while the page is open. */
+:root { color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; }
+  html body { background: #0b1220; color: #e2e8f0; }
+  button:focus-visible, select:focus-visible { outline-color: #93c5fd; }
+  app-root {
+    .weather-container { color: #e2e8f0; }
+    .app-header h1, .weather-card .card-header h3, .detail-header h2,
+    .temp-num, .weather-text, .chart-title, .stat-val, .desc-text,
+    .slot-value-badge { color: #f1f5f9 !important; }
+    .subtitle, .data-status, .select-group label, .stat-label,
+    .slot-time, .loading-box, .no-data, .legend-item { color: #aebed2 !important; }
+    .control-panel, .weather-card, .detail-card {
+      background: #141f30 !important;
+      border-color: #34445a !important;
+      box-shadow: 0 8px 24px rgb(0 0 0 / 16%) !important;
+    }
+    .element-pill-bar, .card-footer, .detail-header { border-color: #40516a !important; }
+    .select-group select, .pill-btn, .slot-value-badge {
+      color: #e2e8f0 !important;
+      background: #1c2a40 !important;
+      border-color: #455a76 !important;
+    }
+    .pill-btn:hover, .metric-slot-card:hover { background: #263a56 !important; }
+    .pill-btn.active { background: #2563eb !important; color: #fff !important; border-color: #60a5fa !important; }
+    .back-btn, .retry-btn, .element-tag { background: #172f51 !important; color: #bfdbfe !important; border-color: #4777b3 !important; }
+    .favorites-bar { background: #301d30; border-color: #77405c; }
+    .fav-title { color: #fda4af !important; }
+    .fav-pill { background: #42233c !important; color: #fecdd3 !important; border-color: #965473 !important; }
+    .remove-icon { color: #fda4af !important; }
+    .weather-grid.single-card-mode .weather-card.theme-sunny { background: linear-gradient(135deg, #382e15, #263245 75%, #1d3554) !important; border-color: #a48437 !important; }
+    .weather-grid.single-card-mode .weather-card.theme-rainy { background: linear-gradient(135deg, #102d43, #173756, #18293e) !important; border-color: #467fa7 !important; }
+    .weather-grid.single-card-mode .weather-card.theme-cloudy { background: linear-gradient(135deg, #243448, #1a293d) !important; border-color: #57718d !important; }
+    .weather-grid.single-card-mode .weather-card.theme-overcast { background: linear-gradient(135deg, #2b3647, #182334) !important; border-color: #65768c !important; }
+    .weather-grid.single-card-mode .weather-card.theme-thunder { background: linear-gradient(135deg, #211d47, #242344, #182334) !important; border-color: #8176bf !important; }
+    .sun-flare, .cloud-drift, .overcast-cloud { opacity: .12; }
+    .temp-unit { color: #93c5fd !important; }
+    .hero-stats-strip, .hero-trend-chart-section,
+    .desc-item, .metric-slot-card { background: #142237 !important; border-color: #3c5574 !important; }
+    .hero-advice-box { background: #182e4a !important; border-color: #41668d !important; }
+    .hero-advice-box p, .desc-time { color: #bfdbfe !important; }
+    .pop-text { background: #142b43 !important; color: #a5d9fb !important; border-color: #46769b !important; }
+    .location-badge { background: #234b7a !important; color: #e0f2fe !important; }
+    .summary-pill.max { background: #40252d !important; color: #fecaca !important; border-color: #935766 !important; }
+    .summary-pill.min { background: #183549 !important; color: #bae6fd !important; border-color: #487d99 !important; }
+    .trend-svg text { fill: #becde0; }
+    .trend-svg text[fill='#d97706'] { fill: #fbbf24; }
+    .trend-svg text[fill='#0284c7'] { fill: #7dd3fc; }
+    .trend-svg circle { stroke: #142237; }
+    .trend-svg line { stroke: #40546e; }
+  }
+}
+
