@@ -878,19 +878,48 @@
 .fav-btn { position: relative; z-index: 4; }
 .fav-pills { align-items: center; }
 .remove-icon { border: 0; border-radius: 50%; color: #be123c; background: transparent; min-width: 32px; min-height: 32px; cursor: pointer; }
+.mobile-option-label { display: none; }
 @media (max-width: 600px) {
-  .weather-container { padding: 24px 14px; }
-  .app-header h1 { font-size: 1.75rem; }
-  .control-panel { padding: 16px; }
-  .control-panel .dropdown-row { align-items: stretch; flex-direction: column; gap: 12px; }
-  .control-panel .dropdown-row .select-group { width: 100%; }
-  .control-panel .dropdown-row .select-group select { min-width: 0; flex: 1; width: 100%; }
+  .weather-container { padding: 20px 14px 28px; }
+  .app-header { margin-bottom: 20px; }
+  .app-header h1 { font-size: clamp(1.35rem, 5.5vw, 1.75rem); line-height: 1.35; }
+  .app-header .subtitle { font-size: .82rem; line-height: 1.6; }
+  .control-panel { padding: 14px; margin-bottom: 20px; gap: 14px; border-radius: 18px; }
+  .control-panel .dropdown-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: stretch;
+  }
+  .control-panel .dropdown-row .locate-btn { grid-column: 1 / -1; min-height: 44px; box-shadow: none; }
+  .control-panel .dropdown-row .select-group { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; }
+  .control-panel .dropdown-row .select-group label { font-size: .82rem; line-height: 1.4; }
+  .control-panel .dropdown-row .select-group select { min-width: 0; width: 100%; min-height: 44px; padding: 8px; font-size: 16px; transition: border-color .2s; }
+  .control-panel .element-pill-bar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding-top: 14px; }
+  .control-panel .element-pill-bar .pill-btn { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 44px; padding: 8px 4px; font-size: .82rem; line-height: 1.3; border-radius: 10px; box-shadow: none; }
+  .desktop-option-label { display: none; }
+  .mobile-option-label { display: inline; }
+  .data-status { margin: 0 0 16px; font-size: .75rem; line-height: 1.6; }
+  .data-status p { margin: 0; }
   .favorites-bar { align-items: flex-start; flex-direction: column; padding: 14px; }
-  .weather-grid { grid-template-columns: minmax(0, 1fr); }
-  .weather-grid.single-card-mode .weather-card { padding: 20px; }
-  .hero-stats-strip { flex-wrap: wrap; gap: 12px; }
+  .weather-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .weather-card { width: 100%; min-width: 0; }
+  .weather-grid.single-card-mode .weather-card { padding: 18px; border-radius: 22px; }
+  .weather-grid.single-card-mode .weather-card .card-header h3 { font-size: 1.5rem; }
+  .weather-grid.single-card-mode .weather-card .card-header .location-badge { font-size: .8rem; padding: 5px 10px; }
+  .weather-grid.single-card-mode .weather-card .card-header { gap: 8px; }
+  .weather-grid.single-card-mode .weather-card .hero-stats-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 12px 8px; }
+  .weather-grid.single-card-mode .weather-card .hero-stats-strip .stat-item { min-width: 0; }
+  .weather-grid.single-card-mode .weather-card .hero-stats-strip .stat-val { white-space: normal; overflow-wrap: anywhere; text-align: center; font-size: .82rem; }
+  .weather-grid.single-card-mode .weather-card .hero-advice-box { padding: 12px; }
+  .weather-grid.single-card-mode .weather-card .hero-advice-box p { line-height: 1.6; }
+  .weather-grid.single-card-mode .weather-card .hero-trend-chart-section { padding: 12px; }
   .chart-header-row { flex-wrap: wrap; gap: 10px; }
-  .detail-card { padding: 18px; }
+  .back-btn-wrapper { margin-bottom: 16px; }
+  .back-btn-wrapper .back-btn { min-height: 44px; }
+  .detail-card { padding: 16px; }
+  .detail-card .detail-header .header-title-group { flex-wrap: wrap; gap: 8px; }
+  .detail-card .metric-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

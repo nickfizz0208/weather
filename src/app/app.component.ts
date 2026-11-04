@@ -70,6 +70,7 @@ export interface DistrictDetail {
 export interface ClimateElementOption {
   id: string;
   name: string;
+  mobileName: string;
 }
 
 export const CITY_API_MAP: Record<string, string> = {
@@ -98,15 +99,15 @@ export const CITY_API_MAP: Record<string, string> = {
 };
 
 export const CLIMATE_OPTIONS: ClimateElementOption[] = [
-  { id: 'ALL', name: '✨ 綜合概況' },
-  { id: 'CI', name: '🧘 舒適度指數' },
-  { id: 'AT', name: '🔥 體感溫度' },
-  { id: 'T', name: '🌡️ 溫度' },
-  { id: 'PoP', name: '💧 降雨機率' },
-  { id: 'RH', name: '💦 相對濕度' },
-  { id: 'WS', name: '🌬️ 風速風向' },
-  { id: 'Td', name: '🧊 露點溫度' },
-  { id: 'DESC', name: '📝 預報綜合描述' }
+  { id: 'ALL', name: '✨ 綜合概況', mobileName: '綜合概況' },
+  { id: 'CI', name: '🧘 舒適度指數', mobileName: '舒適度' },
+  { id: 'AT', name: '🔥 體感溫度', mobileName: '體感溫度' },
+  { id: 'T', name: '🌡️ 溫度', mobileName: '溫度' },
+  { id: 'PoP', name: '💧 降雨機率', mobileName: '降雨機率' },
+  { id: 'RH', name: '💦 相對濕度', mobileName: '相對濕度' },
+  { id: 'WS', name: '🌬️ 風速風向', mobileName: '風速風向' },
+  { id: 'Td', name: '🧊 露點溫度', mobileName: '露點溫度' },
+  { id: 'DESC', name: '📝 預報綜合描述', mobileName: '預報描述' }
 ];
 
 @Component({
