@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "deploy:cloudflare": "npm run build && npx --yes wrangler@4 pages deploy dist --project-name weather-nickfizz0208 --branch main"
   },
   "private": true,
   "dependencies": {
