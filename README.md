@@ -57,3 +57,20 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Cloudflare 網站部署
+
+使用 Cloudflare Workers 託管公開網站；手機與電腦開啟同一個 HTTPS 網址即可，不需登入。氣象署金鑰由後端 Secret 保存，前端僅呼叫同源的 `/api/weather`。
+
+```powershell
+npm ci
+npx --yes wrangler@4 login
+npm run deploy:cloudflare
+npx --yes wrangler@4 secret put CWA_API_KEY
+```
+
+最後一個指令會提示輸入氣象署 API 金鑰，不要把金鑰寫入程式或 Git。以 Wrangler 回傳的正式 workers.dev 網址為準。更新網站時執行 `npm run deploy:cloudflare`。
+
+後端驗證：`npm run test:worker`。建置輸出為 `dist/`，設定為 `wrangler.json`，後端程式為 `worker/index.mjs`。
+
+本機完整預覽：先執行 `npm run build`，將 `.dev.vars.example` 複製為 `.dev.vars` 並填入金鑰，再執行 `npx --yes wrangler@4 dev`。`.dev.vars` 已排除於 Git。
